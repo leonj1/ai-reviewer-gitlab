@@ -1,0 +1,65 @@
+@startuml GitLab AI Review System
+
+actor Developer
+participant "GitLab\nWebhook" as Webhook
+participant "Main" as Main
+participant "GitLabReviewer" as Reviewer
+participant "ReviewStrategy" as Strategy
+participant "AIReviewStrategy" as AIStrategy
+participant "SecurityReviewStrategy" as SecStrategy
+participant "LLMClient" as LLM
+participant "GitLab API" as GitLabAPI
+participant "OpenAI API" as OpenAI
+
+Developer -> GitLabAPI: Create/Update Merge Request
+GitLabAPI -> Webhook: Trigger webhook event
+
+Webhook -> Main: Notify new/updated MR
+activate Main
+
+Main -> Reviewer: process_merge_request(project_id, mr_iid)
+activate Reviewer
+
+Reviewer -> GitLabAPI: Get MR details
+GitLabAPI --> Reviewer: MR info
+
+Reviewer -> GitLabAPI: Get changes
+GitLabAPI --> Reviewer: Changes data
+
+loop For each strategy
+    alt AI Review
+        Reviewer -> AIStrategy: review_changes(changes)
+        activate AIStrategy
+        
+        AIStrategy -> LLM: analyze_changes(file_change)
+        activate LLM
+        
+        LLM -> OpenAI: Create completion
+        OpenAI --> LLM: AI analysis
+        
+        LLM --> AIStrategy: Review comments
+        deactivate LLM
+        
+        AIStrategy --> Reviewer: AI review comments
+        deactivate AIStrategy
+        
+    else Security Review
+        Reviewer -> SecStrategy: review_changes(changes)
+        activate SecStrategy
+        SecStrategy --> Reviewer: Security review comments
+        deactivate SecStrategy
+    end
+end
+
+Reviewer -> GitLabAPI: Submit review comments
+GitLabAPI --> Reviewer: Confirmation
+
+Reviewer --> Main: Review complete
+deactivate Reviewer
+
+Main --> Webhook: Process complete
+deactivate Main
+
+GitLabAPI -> Developer: Notify review complete
+
+@enduml
