@@ -1,0 +1,5 @@
+.venv
+.aider*
+__pycache__
+
+.env

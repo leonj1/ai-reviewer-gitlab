@@ -1,0 +1,61 @@
+# Use Python 3.11 slim image for a smaller footprint
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTEST_ADDOPTS="--color=yes"
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first to leverage Docker cache
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt \
+    pytest-cov \
+    black \
+    flake8 \
+    mypy
+
+# Copy project files
+COPY . .
+
+# Create a non-root user and switch to it
+RUN useradd -m testuser && \
+    chown -R testuser:testuser /app
+USER testuser
+
+# Set up entry point script
+COPY <<EOF /app/run_tests.sh
+#!/bin/bash
+set -e
+
+echo "🔍 Running code formatting check with Black..."
+black --check .
+
+echo "🔍 Running code style check with Flake8..."
+flake8 .
+
+echo "🔍 Running type checking with MyPy..."
+mypy .
+
+echo "🧪 Running tests with coverage..."
+pytest --cov=. --cov-report=term-missing -v tests/
+
+EOF
+
+# Make the script executable
+USER root
+RUN chmod +x /app/run_tests.sh
+USER testuser
+
+# Set the entry point
+ENTRYPOINT ["/app/run_tests.sh"]
