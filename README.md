@@ -51,7 +51,7 @@ ai-review:
   variables:
     GIT_STRATEGY: clone
   script:
-    - pip install git+https://gitlab.com/your-username/ai-reviewer-gitlab.git
+    - pip install git+https://gitlab.com/leonj2-pub/ai-reviewer-gitlab.git#egg=ai-reviewer-gitlab
     - python -m ai_reviewer
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
