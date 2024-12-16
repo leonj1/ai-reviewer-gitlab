@@ -28,7 +28,7 @@ dependencies = [
 "Bug Tracker" = "https://gitlab.com/leonj2-pub/ai-reviewer-gitlab/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["."]
+packages = ["ai_reviewer"]
 
 [project.scripts]
-ai_reviewer = "main:main"
+ai_reviewer = "ai_reviewer.main:main"
