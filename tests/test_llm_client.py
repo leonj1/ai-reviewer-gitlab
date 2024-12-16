@@ -15,7 +15,7 @@ def mock_openai(mocker: Any) -> Any:
     """
     mock = mocker.patch("openai.chat.completions.create")
     mock.return_value.choices = [
-        type('Choice', (), {'message': {'content': 'Test feedback'}})()
+        type("Choice", (), {"message": {"content": "Test feedback"}})()
     ]
     return mock
 
