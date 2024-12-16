@@ -1,8 +1,9 @@
 import os
-from typing import Any, Dict, List
+from typing import List, Dict, Any
 import gitlab
+
+from .review_strategies import ReviewStrategy, ReviewComment
 from dotenv import load_dotenv
-from review_strategies import ReviewStrategy, ReviewComment
 
 
 class GitLabReviewer:

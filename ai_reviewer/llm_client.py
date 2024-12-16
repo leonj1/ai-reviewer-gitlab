@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, TypedDict
 import openai
-from review_strategies import ReviewComment
+from .review_strategies import ReviewComment
 
 
 class ChatMessage(TypedDict):

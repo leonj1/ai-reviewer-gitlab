@@ -1,13 +1,13 @@
 import os
-from llm_client import LLMClient
-from gitlab_reviewer import GitLabReviewer
-from review_strategies import AIReviewStrategy, SecurityReviewStrategy
+from .llm_client import LLMClient
+from .gitlab_reviewer import GitLabReviewer
+from .review_strategies import StandardReviewStrategy, SecurityReviewStrategy
 
 
 def main() -> None:
     """Main entry point for the GitLab AI reviewer."""
     llm_client = LLMClient(api_key=os.getenv("OPENAI_API_KEY", ""))
-    strategies = [AIReviewStrategy(llm_client), SecurityReviewStrategy()]
+    strategies = [StandardReviewStrategy(llm_client), SecurityReviewStrategy()]
     reviewer = GitLabReviewer(strategies)
 
     project_id = os.getenv("GITLAB_PROJECT_ID")

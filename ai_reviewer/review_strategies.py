@@ -7,11 +7,9 @@ import re
 @dataclass
 class ReviewComment:
     """A code review comment."""
-
     path: str
     line: int
     content: str
-    suggestion: Optional[str] = None
 
 
 class ReviewStrategy(ABC):
@@ -29,7 +27,7 @@ class ReviewStrategy(ABC):
         pass
 
 
-class AIReviewStrategy(ReviewStrategy):
+class StandardReviewStrategy(ReviewStrategy):
     """AI-powered code review strategy."""
 
     def __init__(self, llm_client: Any) -> None:
@@ -71,15 +69,16 @@ class SecurityReviewStrategy(ReviewStrategy):
         Returns:
             List of review comments
         """
-        comments = []
+        comments: List[ReviewComment] = []
         for change in changes:
+            diff = change["diff"]
             for pattern, message in self.patterns.items():
-                if re.search(pattern, change["diff"], re.IGNORECASE):
+                if re.search(pattern, diff):
                     comments.append(
                         ReviewComment(
                             path=change["new_path"],
-                            line=change.get("new_line", 1),
-                            content=message,
+                            line=change["line"],
+                            content=f"Security Issue: {message}",
                         )
                     )
         return comments
