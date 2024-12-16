@@ -1,26 +1,50 @@
 import os
+import sys
+import logging
 from typing import List, Dict, Any
 import gitlab
 
 from .review_strategies import ReviewStrategy, ReviewComment
-from dotenv import load_dotenv
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
 class GitLabReviewer:
-    """Main class for handling GitLab merge request reviews."""
+    """GitLab code reviewer that processes merge requests."""
 
-    def __init__(self, review_strategies: List[ReviewStrategy]) -> None:
+    def __init__(self, strategies: List[ReviewStrategy]) -> None:
         """Initialize GitLab reviewer with review strategies.
 
         Args:
-            review_strategies: List of review strategies to apply
+            strategies: List of review strategies to apply
         """
-        load_dotenv()
-        self.strategies = review_strategies
-        self.gl = gitlab.Gitlab(
-            url=os.getenv("GITLAB_URL", ""),
-            private_token=os.getenv("GITLAB_TOKEN", ""),
-        )
+        self.strategies = strategies
+        
+        # Get GitLab configuration
+        gitlab_url = os.getenv("CI_SERVER_URL") or os.getenv("GITLAB_URL")
+        gitlab_token = os.getenv("GITLAB_TOKEN")
+        
+        if not gitlab_url or not gitlab_token:
+            logger.error("Missing GitLab configuration:")
+            if not gitlab_url:
+                logger.error("- GITLAB_URL or CI_SERVER_URL not set")
+            if not gitlab_token:
+                logger.error("- GITLAB_TOKEN not set")
+            sys.exit(1)
+            
+        logger.info(f"Connecting to GitLab at: {gitlab_url}")
+        try:
+            self.gl = gitlab.Gitlab(url=gitlab_url, private_token=gitlab_token)
+            self.gl.auth()
+            logger.info("Successfully authenticated with GitLab")
+        except Exception as e:
+            logger.error(f"Failed to connect to GitLab: {str(e)}")
+            sys.exit(1)
 
     def process_merge_request(self, project_id: int, mr_iid: int) -> None:
         """Process a merge request and add review comments.
@@ -29,56 +53,89 @@ class GitLabReviewer:
             project_id: GitLab project ID
             mr_iid: Merge request internal ID
         """
-        project = self.gl.projects.get(project_id)
-        mr = project.mergerequests.get(mr_iid)
-        changes = mr.changes()
+        logger.info(f"Processing merge request {mr_iid} in project {project_id}")
+        
+        try:
+            # Get project
+            logger.info(f"Fetching project {project_id}")
+            project = self.gl.projects.get(project_id)
+            logger.info(f"Found project: {project.name}")
 
-        all_comments = []
-        for strategy in self.strategies:
-            comments = strategy.review_changes(changes["changes"])
-            all_comments.extend(comments)
+            # Get merge request
+            logger.info(f"Fetching merge request {mr_iid}")
+            mr = project.mergerequests.get(mr_iid)
+            logger.info(f"Found merge request: {mr.title}")
 
-        self._add_review_comments(mr, all_comments)
+            # Get changes
+            logger.info("Fetching merge request changes")
+            changes = self._get_merge_request_changes(mr)
+            logger.info(f"Found {len(changes)} changed files")
 
-    def _get_merge_request_changes(
-        self, merge_request: Any
-    ) -> Dict[str, List[Dict[str, Any]]]:
-        """Get changes from a merge request.
+            # Apply review strategies
+            all_comments = []
+            for strategy in self.strategies:
+                logger.info(f"Applying review strategy: {strategy.__class__.__name__}")
+                comments = strategy.review_changes(changes)
+                logger.info(f"Strategy generated {len(comments)} comments")
+                all_comments.extend(comments)
+
+            # Add comments to merge request
+            logger.info(f"Adding {len(all_comments)} review comments")
+            self._add_review_comments(mr, all_comments)
+            logger.info("Successfully added review comments")
+
+        except gitlab.exceptions.GitlabError as e:
+            logger.error(f"GitLab API error: {str(e)}")
+            if hasattr(e, 'response_code'):
+                logger.error(f"Response code: {e.response_code}")
+            if hasattr(e, 'response_body'):
+                logger.error(f"Response body: {e.response_body}")
+            sys.exit(1)
+        except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}")
+            sys.exit(1)
+
+    def _get_merge_request_changes(self, mr: Any) -> List[Dict[str, Any]]:
+        """Get changes from merge request.
 
         Args:
-            merge_request: GitLab merge request object
+            mr: GitLab merge request object
         Returns:
-            Dictionary containing merge request changes
+            List of changes with file and diff information
         """
-        changes = merge_request.changes()
-        return {
-            "changes": [
-                {
-                    "new_path": change["new_path"],
-                    "diff": change["diff"],
-                    "new_line": change.get("new_line", 1),
-                }
-                for change in changes["changes"]
-            ]
-        }
+        logger.info("Fetching merge request changes")
+        changes = mr.changes()['changes']
+        processed_changes = []
+        
+        for change in changes:
+            logger.debug(f"Processing change in file: {change.get('new_path')}")
+            if 'diff' in change and change['diff']:
+                processed_changes.append({
+                    'new_path': change['new_path'],
+                    'diff': change['diff'],
+                    'line': 1  # Default to first line if not specified
+                })
+        
+        return processed_changes
 
-    def _add_review_comments(
-        self, merge_request: Any, comments: List[ReviewComment]
-    ) -> None:
-        """Add review comments to a merge request.
+    def _add_review_comments(self, mr: Any, comments: List[ReviewComment]) -> None:
+        """Add review comments to merge request.
 
         Args:
-            merge_request: GitLab merge request object
+            mr: GitLab merge request object
             comments: List of review comments to add
         """
         for comment in comments:
-            merge_request.discussions.create(
-                {
-                    "body": comment.content,
-                    "position": {
-                        "position_type": "text",
-                        "new_path": comment.path,
-                        "new_line": comment.line,
-                    },
-                }
-            )
+            logger.info(f"Adding comment to {comment.path} at line {comment.line}")
+            try:
+                mr.discussions.create({
+                    'body': comment.content,
+                    'position': {
+                        'position_type': 'text',
+                        'new_path': comment.path,
+                        'new_line': comment.line,
+                    }
+                })
+            except Exception as e:
+                logger.error(f"Failed to add comment: {str(e)}")
+                # Continue with other comments even if one fails
