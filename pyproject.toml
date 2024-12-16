@@ -26,3 +26,9 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://gitlab.com/leonj2-pub/ai-reviewer-gitlab"
 "Bug Tracker" = "https://gitlab.com/leonj2-pub/ai-reviewer-gitlab/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[project.scripts]
+ai_reviewer = "main:main"
