@@ -35,7 +35,7 @@ def main() -> None:
         sys.exit(1)
 
     # Review the merge request
-    reviewer.review_merge_request(project_id, mr_iid)
+    reviewer.process_merge_request(int(project_id), int(mr_iid))
 
 
 if __name__ == "__main__":
