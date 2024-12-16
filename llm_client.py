@@ -15,7 +15,7 @@ class LLMClient:
 
     def __init__(self, api_key: str):
         """Initialize the LLM client with API key."""
-        openai.api_key = api_key
+        self.client = openai.OpenAI(api_key=api_key)
 
     def analyze_code(self, code_changes: List[Dict[str, Any]]) -> List[ReviewComment]:
         """
@@ -27,7 +27,7 @@ class LLMClient:
         """
         messages = self._prepare_messages(code_changes)
         try:
-            response = openai.chat.completions.create(
+            response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=messages,
                 temperature=0.7,

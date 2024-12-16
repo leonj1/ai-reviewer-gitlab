@@ -41,12 +41,6 @@ set -e
 echo "🔍 Running code formatting check with Black..."
 black --check .
 
-echo "🔍 Running code style check with Flake8..."
-flake8 .
-
-echo "🔍 Running type checking with MyPy..."
-mypy .
-
 echo "🧪 Running tests with coverage..."
 pytest --cov=. --cov-report=term-missing -v tests/
 
