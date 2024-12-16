@@ -24,22 +24,30 @@ class GitLabReviewer:
             strategies: List of review strategies to apply
         """
         self.strategies = strategies
-        
+
         # Get GitLab configuration
         gitlab_url = os.getenv("CI_SERVER_URL") or os.getenv("GITLAB_URL")
-        gitlab_token = os.getenv("GITLAB_TOKEN")
-        
+
+        # Try CI_JOB_TOKEN first (for GitLab CI), fallback to GITLAB_TOKEN (for local dev)
+        gitlab_token = os.getenv("CI_JOB_TOKEN") or os.getenv("GITLAB_TOKEN")
+
         if not gitlab_url or not gitlab_token:
             logger.error("Missing GitLab configuration:")
             if not gitlab_url:
                 logger.error("- GITLAB_URL or CI_SERVER_URL not set")
             if not gitlab_token:
-                logger.error("- GITLAB_TOKEN not set")
+                logger.error("- Neither CI_JOB_TOKEN (for CI) nor GITLAB_TOKEN (for local) is set")
             sys.exit(1)
-            
+
         logger.info(f"Connecting to GitLab at: {gitlab_url}")
         try:
-            self.gl = gitlab.Gitlab(url=gitlab_url, private_token=gitlab_token)
+            if os.getenv("CI_JOB_TOKEN"):
+                logger.info("Using CI job token for authentication")
+                self.gl = gitlab.Gitlab(url=gitlab_url, job_token=gitlab_token)
+            else:
+                logger.info("Using private token for authentication")
+                self.gl = gitlab.Gitlab(url=gitlab_url, private_token=gitlab_token)
+
             self.gl.auth()
             logger.info("Successfully authenticated with GitLab")
         except Exception as e:
@@ -54,7 +62,7 @@ class GitLabReviewer:
             mr_iid: Merge request internal ID
         """
         logger.info(f"Processing merge request {mr_iid} in project {project_id}")
-        
+
         try:
             # Get project
             logger.info(f"Fetching project {project_id}")
@@ -106,7 +114,7 @@ class GitLabReviewer:
         logger.info("Fetching merge request changes")
         changes = mr.changes()['changes']
         processed_changes = []
-        
+
         for change in changes:
             logger.debug(f"Processing change in file: {change.get('new_path')}")
             if 'diff' in change and change['diff']:
@@ -115,7 +123,7 @@ class GitLabReviewer:
                     'diff': change['diff'],
                     'line': 1  # Default to first line if not specified
                 })
-        
+
         return processed_changes
 
     def _add_review_comments(self, mr: Any, comments: List[ReviewComment]) -> None:
