@@ -27,20 +27,54 @@ An AI-powered code review tool that automatically analyzes GitLab merge requests
      - `write_discussion` (Post comments)
    - Save the token securely, you'll need it for configuration
 
-3. Configure Webhook (Optional - for automatic reviews):
-   - Go to your project's Settings > Webhooks
-   - Add a new webhook with the following settings:
-     - URL: Your deployed reviewer endpoint
-     - Trigger: Merge request events
-     - SSL verification: According to your setup
-   - The reviewer will automatically analyze new merge requests and changes
-
-4. Configure Project-level Variables:
+3. Configure Project-level Variables:
    - Go to Settings > CI/CD > Variables
    - Add the following variables:
      - `OPENAI_API_KEY`: Your OpenAI API key
      - `GITLAB_TOKEN`: The access token created earlier
      - Mark them as Protected and Masked for security
+
+## Using the Reviewer in Your Project
+
+### Step 1: Add Required Variables
+In the project you want to be reviewed, go to Settings > CI/CD > Variables and add:
+- `OPENAI_API_KEY`: Your OpenAI API key
+- `GITLAB_TOKEN`: The GitLab access token from setup step 2
+Mark both as Protected and Masked for security.
+
+### Step 2: Create GitLab CI Configuration
+Add this configuration to your project's `.gitlab-ci.yml`:
+
+```yaml
+ai-review:
+  image: python:3.11-slim
+  variables:
+    GIT_STRATEGY: clone
+  script:
+    - pip install git+https://gitlab.com/your-username/ai-reviewer-gitlab.git
+    - python -m ai_reviewer
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+```
+
+### Step 3: Configure Review Settings (Optional)
+Create `.ai-reviewer.yml` in your project root to customize the review:
+
+```yaml
+review_strategies:
+  - standard  # Basic code review
+  - security  # Security-focused review
+
+# Optional settings
+settings:
+  max_files_per_review: 10
+  excluded_files:
+    - "*.md"
+    - "*.txt"
+  review_comment_prefix: "🤖 AI Review:"
+```
+
+The reviewer will now automatically run on all merge requests and add comments based on the AI analysis.
 
 ## Local Development
 
