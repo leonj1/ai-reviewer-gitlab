@@ -30,7 +30,9 @@ def main() -> None:
         mr_iid = os.getenv("GITLAB_MR_IID")
 
     if not project_id or not mr_iid:
-        print("Error: Either CI_PROJECT_ID and CI_MERGE_REQUEST_IID must be set (in GitLab CI)")
+        print(
+            "Error: Either CI_PROJECT_ID and CI_MERGE_REQUEST_IID must be set (in GitLab CI)"
+        )
         print("or GITLAB_PROJECT_ID and GITLAB_MR_IID must be set (for local testing)")
         sys.exit(1)
 

@@ -1,7 +1,7 @@
 import pytest
 from typing import Any, Dict, List
-from llm_client import LLMClient
-from review_strategies import ReviewComment
+from ai_reviewer.llm_client import LLMClient
+from ai_reviewer.review_strategies import ReviewComment
 
 
 @pytest.fixture

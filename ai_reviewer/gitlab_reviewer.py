@@ -9,7 +9,7 @@ from .review_strategies import ReviewStrategy, ReviewComment
 # Set up logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,9 @@ class GitLabReviewer:
             if not gitlab_url:
                 logger.error("- GITLAB_URL or CI_SERVER_URL not set")
             if not gitlab_token:
-                logger.error("- Neither CI_JOB_TOKEN (for CI) nor GITLAB_TOKEN (for local) is set")
+                logger.error(
+                    "- Neither CI_JOB_TOKEN (for CI) nor GITLAB_TOKEN (for local) is set"
+                )
             sys.exit(1)
 
         logger.info(f"Connecting to GitLab at: {gitlab_url}")
@@ -94,9 +96,9 @@ class GitLabReviewer:
 
         except gitlab.exceptions.GitlabError as e:
             logger.error(f"GitLab API error: {str(e)}")
-            if hasattr(e, 'response_code'):
+            if hasattr(e, "response_code"):
                 logger.error(f"Response code: {e.response_code}")
-            if hasattr(e, 'response_body'):
+            if hasattr(e, "response_body"):
                 logger.error(f"Response body: {e.response_body}")
             sys.exit(1)
         except Exception as e:
@@ -112,17 +114,19 @@ class GitLabReviewer:
             List of changes with file and diff information
         """
         logger.info("Fetching merge request changes")
-        changes = mr.changes()['changes']
+        changes = mr.changes()["changes"]
         processed_changes = []
 
         for change in changes:
             logger.debug(f"Processing change in file: {change.get('new_path')}")
-            if 'diff' in change and change['diff']:
-                processed_changes.append({
-                    'new_path': change['new_path'],
-                    'diff': change['diff'],
-                    'line': 1  # Default to first line if not specified
-                })
+            if "diff" in change and change["diff"]:
+                processed_changes.append(
+                    {
+                        "new_path": change["new_path"],
+                        "diff": change["diff"],
+                        "line": 1,  # Default to first line if not specified
+                    }
+                )
 
         return processed_changes
 
@@ -136,14 +140,16 @@ class GitLabReviewer:
         for comment in comments:
             logger.info(f"Adding comment to {comment.path} at line {comment.line}")
             try:
-                mr.discussions.create({
-                    'body': comment.content,
-                    'position': {
-                        'position_type': 'text',
-                        'new_path': comment.path,
-                        'new_line': comment.line,
+                mr.discussions.create(
+                    {
+                        "body": comment.content,
+                        "position": {
+                            "position_type": "text",
+                            "new_path": comment.path,
+                            "new_line": comment.line,
+                        },
                     }
-                })
+                )
             except Exception as e:
                 logger.error(f"Failed to add comment: {str(e)}")
                 # Continue with other comments even if one fails

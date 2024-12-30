@@ -1,6 +1,11 @@
 import pytest
 from typing import Any, Dict, List
-from review_strategies import ReviewComment, AIReviewStrategy, SecurityReviewStrategy
+
+from ai_reviewer.review_strategies import (
+    ReviewComment,
+    SecurityReviewStrategy,
+    StandardReviewStrategy,
+)
 
 
 def create_test_comment(path: str, line: int, content: str) -> ReviewComment:
@@ -75,7 +80,7 @@ def test_ai_review_strategy(
     mock_llm.analyze_code.return_value = expected_comments
 
     # Create strategy and run review
-    strategy = AIReviewStrategy(mock_llm)
+    strategy = StandardReviewStrategy(mock_llm)
     result = strategy.review_changes(changes["changes"])
 
     # Verify results
@@ -96,7 +101,11 @@ security_review_test_cases = [
                 }
             ]
         },
-        [create_test_comment("secure.py", 5, "Avoid hardcoding passwords")],
+        [
+            create_test_comment(
+                "secure.py", 5, "Security Issue: Avoid hardcoding passwords"
+            )
+        ],
         id="security_issue_found",
     ),
     pytest.param(

@@ -1,7 +1,7 @@
 import pytest
 from typing import Any, Dict
-from gitlab_reviewer import GitLabReviewer
-from review_strategies import ReviewComment
+from ai_reviewer.gitlab_reviewer import GitLabReviewer
+from ai_reviewer.review_strategies import ReviewComment
 
 
 def create_test_comment(path: str, line: int, content: str) -> ReviewComment:
@@ -67,6 +67,15 @@ def test_process_merge_request(mocker: Any, test_case: Dict[str, Any]) -> None:
         mocker: Pytest mocker fixture
         test_case: Test case data
     """
+    # Mock environment variables
+    mocker.patch.dict(
+        "os.environ",
+        {
+            "GITLAB_URL": "https://gitlab.example.com",
+            "GITLAB_TOKEN": "test-token",
+        },
+    )
+
     # Mock GitLab client
     mock_gl = mocker.Mock()
     mock_project = mocker.Mock()
@@ -84,9 +93,12 @@ def test_process_merge_request(mocker: Any, test_case: Dict[str, Any]) -> None:
         strategy.review_changes.return_value = result
         mock_strategies.append(strategy)
 
+    # Mock GitLab class
+    mock_gitlab = mocker.patch("gitlab.Gitlab")
+    mock_gitlab.return_value = mock_gl
+
     # Create reviewer instance
     reviewer = GitLabReviewer(mock_strategies)
-    reviewer.gl = mock_gl
 
     # Execute
     reviewer.process_merge_request(test_case["project_id"], test_case["mr_iid"])

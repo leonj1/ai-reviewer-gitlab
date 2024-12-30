@@ -7,6 +7,7 @@ import re
 @dataclass
 class ReviewComment:
     """A code review comment."""
+
     path: str
     line: int
     content: str
@@ -77,7 +78,7 @@ class SecurityReviewStrategy(ReviewStrategy):
                     comments.append(
                         ReviewComment(
                             path=change["new_path"],
-                            line=change["line"],
+                            line=change.get("new_line", change.get("line", 1)),
                             content=f"Security Issue: {message}",
                         )
                     )
