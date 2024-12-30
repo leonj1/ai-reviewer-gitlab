@@ -1,4 +1,4 @@
-.PHONY: test clean
+.PHONY: test clean setup
 
 # Docker image name
 IMAGE_NAME := gitlab-reviewer-test
@@ -21,3 +21,8 @@ test: clean
 	docker build -t $(IMAGE_NAME) -f Dockerfile.test .
 	@echo "🧪 Running tests..."
 	docker run --rm $(IMAGE_NAME)
+
+# Setup git hooks
+setup:
+	@echo "🔧 Setting up git hooks..."
+	git config core.hooksPath .githooks

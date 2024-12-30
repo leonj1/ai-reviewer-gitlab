@@ -103,6 +103,14 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+4. Set up git hooks:
+```bash
+make setup
+```
+
+This will configure git to use the project's hooks, which include:
+- A pre-push hook that runs tests before allowing a push to proceed
+
 ### Configuration
 
 Set the following environment variables:
@@ -153,3 +161,5 @@ docker run --rm gitlab-reviewer-test
 - `review_strategies.py`: Different code review strategies
 - `main.py`: Entry point of the application
 - `tests/`: Test suite directory
+- `.githooks/`: Git hooks for development workflow
+  - `pre-push`: Runs tests before allowing a push
